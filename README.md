@@ -1,6 +1,6 @@
 # Gold Market Funnel Analysis Dashboard
 
-An interactive, single-page HTML dashboard analysing the Indian gold market from 2019 to 2024 — covering investment funnels, jewellery purchase behaviour, price trends, and methodology.
+An interactive, multi-page HTML dashboard analysing the Indian gold market from 2019 to 2024 — covering investment funnels, jewellery purchase behaviour, price trends, and methodology.
 
 ## 🔗 Live Demo
 
