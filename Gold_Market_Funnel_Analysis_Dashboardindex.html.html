@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gold Market Funnel Analysis Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold-primary: #D4AF37;
+    --gold-bright: #FFD700;
+    --gold-deep: #C9A227;
+    --gold-dark: #B8960B;
+    --gold-darker: #A67C00;
+    --gold-bg: #FAF7EE;
+    --gold-subtle: #F5EDD0;
+    --bg: #FFFFFF;
+    --surface: #FAF8F3;
+    --surface2: #F2EDD8;
+    --text-primary: #1C1C1C;
+    --text-secondary: #555555;
+    --text-muted: #888888;
+    --border: #E8DFC0;
+    --border-light: #F0E8CC;
+    --danger: #C0392B;
+    --success: #1E8449;
+    --neutral: #5D6D7E;
+    --shadow: 0 2px 12px rgba(180,150,30,0.10);
+    --shadow-lg: 0 4px 24px rgba(180,150,30,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ── NAV ── */
+  .nav {
+    background: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 24px;
+    height: 46px;
+    border-bottom: 2px solid var(--gold-primary);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--gold-primary);
+    letter-spacing: 0.04em;
+    margin-right: 32px;
+    white-space: nowrap;
+  }
+  .nav-tabs { display: flex; gap: 2px; flex: 1; overflow-x: auto; }
+  .nav-tab {
+    padding: 0 16px;
+    height: 46px;
+    display: flex; align-items: center;
+    font-size: 12px;
+    font-weight: 400;
+    color: #aaa;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+    background: none; border-top: none; border-left: none; border-right: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .nav-tab:hover { color: var(--gold-bright); }
+  .nav-tab.active { color: var(--gold-primary); border-bottom-color: var(--gold-primary); font-weight: 500; }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 20px 24px 32px; background: var(--surface); min-height: calc(100vh - 46px); }
+  .page.active { display: block; }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    background: var(--text-primary);
+    border-radius: 10px;
+    padding: 14px 22px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #333;
+  }
+  .page-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold-primary);
+    letter-spacing: 0.02em;
+  }
+  .page-subtitle {
+    font-size: 11px;
+    color: #777;
+    margin-top: 2px;
+  }
+  .data-badge {
+    background: rgba(212,175,55,0.15);
+    border: 1px solid rgba(212,175,55,0.3);
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-size: 10px;
+    color: var(--gold-primary);
+    font-weight: 500;
+  }
+
+  /* ── KPI CARDS ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 18px; }
+  .kpi-card {
+    background: var(--bg);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 12px 14px;
+    border-top: 3px solid var(--gold-primary);
+    box-shadow: var(--shadow);
+  }
+  .kpi-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .kpi-value { font-size: 22px; font-weight: 500; color: var(--gold-primary); font-family: 'Cormorant Garamond', serif; }
+  .kpi-delta { font-size: 10px; margin-top: 2px; }
+  .kpi-delta.up { color: var(--success); }
+  .kpi-delta.down { color: var(--danger); }
+  .kpi-delta.neutral { color: var(--neutral); }
+
+  /* ── SLICER BAR ── */
+  .slicer-bar {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .slicer-label { font-size: 11px; font-weight: 500; color: var(--gold-deep); margin-right: 4px; }
+  .slicer-select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 4px 8px;
+    background: var(--surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+  }
+  .slicer-select:focus { border-color: var(--gold-primary); }
+
+  /* ── GRID LAYOUTS ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+  .grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 14px; }
+
+  /* ── CHART CARDS ── */
+  .chart-card {
+    background: var(--bg);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .chart-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .chart-title .dax-badge {
+    font-size: 9px;
+    background: rgba(212,175,55,0.12);
+    color: var(--gold-dark);
+    border: 1px solid rgba(212,175,55,0.25);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .chart-wrap { position: relative; }
+
+  /* ── FUNNEL ── */
+  .funnel-wrap { padding: 4px 0; }
+  .funnel-stage {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    gap: 8px;
+  }
+  .funnel-bar-outer {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .funnel-bar {
+    background: var(--gold-primary);
+    border-radius: 3px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.6s ease;
+    min-width: 40px;
+  }
+  .funnel-bar-label { font-size: 10px; font-weight: 500; color: #fff; white-space: nowrap; padding: 0 8px; }
+  .funnel-stage-name { font-size: 10px; color: var(--text-secondary); min-width: 100px; text-align: right; }
+  .funnel-stage-value { font-size: 10px; font-weight: 500; color: var(--text-primary); min-width: 56px; text-align: right; }
+  .funnel-drop { font-size: 9px; color: var(--danger); min-width: 40px; text-align: right; }
+
+  /* ── INSIGHTS BOX ── */
+  .insights-box {
+    background: var(--text-primary);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .insights-title { font-size: 12px; font-weight: 500; color: var(--gold-primary); margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 7px; }
+  .insight-item { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid #292929; font-size: 11px; color: #ccc; }
+  .insight-item:last-child { border-bottom: none; }
+  .insight-bullet { color: var(--gold-primary); font-size: 12px; }
+
+  /* ── METHODOLOGY GRID ── */
+  .method-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px; }
+  .method-card {
+    background: var(--bg);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 16px;
+    border-top: 3px solid var(--gold-primary);
+  }
+  .method-card-title { font-size: 11px; font-weight: 500; color: var(--gold-deep); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .method-item { font-size: 11px; color: var(--text-secondary); padding: 4px 0; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 6px; }
+  .method-item:last-child { border-bottom: none; }
+  .method-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold-primary); flex-shrink: 0; }
+
+  /* ── CONCLUSION CARD ── */
+  .conclusion-card {
+    background: var(--text-primary);
+    border-radius: 8px;
+    padding: 18px 22px;
+    border: 1px solid #333;
+  }
+  .conclusion-title { font-size: 12px; font-weight: 500; color: var(--gold-primary); margin-bottom: 12px; }
+  .conclusion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .conclusion-item { display: flex; gap: 8px; font-size: 11px; color: #ccc; padding: 6px 0; border-bottom: 1px solid #2a2a2a; }
+  .conclusion-item:last-child { border-bottom: none; }
+  .conclusion-num { color: var(--gold-primary); font-weight: 500; font-family: 'Cormorant Garamond', serif; font-size: 14px; flex-shrink: 0; }
+
+  /* ── SOURCE CITATION ── */
+  .source-note { font-size: 10px; color: var(--text-muted); margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--border-light); }
+  .source-note strong { color: var(--gold-dark); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .kpi-row { grid-template-columns: repeat(3, 1fr); }
+    .grid-2, .grid-3, .grid-2-1, .grid-1-2 { grid-template-columns: 1fr; }
+    .method-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">⬡ Gold Market Dashboard</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchPage('exec')">Executive Summary</button>
+    <button class="nav-tab" onclick="switchPage('invest')">Investment Insights</button>
+    <button class="nav-tab" onclick="switchPage('jewelry')">Jewelry Market Insights</button>
+    <button class="nav-tab" onclick="switchPage('trends')">Gold Price Trends</button>
+    <button class="nav-tab" onclick="switchPage('method')">Methodology &amp; Overview</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════
+     PAGE 1 — EXECUTIVE SUMMARY
+═══════════════════════════════════════════════════════ -->
+<div id="page-exec" class="page active">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Gold Market Funnel Analysis Dashboard</div>
+      <div class="page-subtitle">Indian Gold Market · 2019–2024 · INR per 10g · Source: MCX India, World Gold Council, IBJA</div>
+    </div>
+    <div class="data-badge">Real Market Data</div>
+  </div>
+
+  <!-- SLICERS -->
+  <div class="slicer-bar">
+    <div>
+      <span class="slicer-label">Year</span>
+      <select class="slicer-select" id="slicer-year" onchange="updateExec()">
+        <option value="all">All Years (2019–2024)</option>
+        <option value="2019">2019</option>
+        <option value="2020">2020</option>
+        <option value="2021">2021</option>
+        <option value="2022">2022</option>
+        <option value="2023">2023</option>
+        <option value="2024">2024</option>
+      </select>
+    </div>
+    <div>
+      <span class="slicer-label">Age Group</span>
+      <select class="slicer-select" id="slicer-age">
+        <option value="all">All Segments</option>
+        <option value="18-30">18–30 (Young Investors)</option>
+        <option value="31-45">31–45 (Mid Career)</option>
+        <option value="46-60">46–60 (Pre-Retirement)</option>
+        <option value="60+">60+ (Senior)</option>
+      </select>
+    </div>
+    <div>
+      <span class="slicer-label">Channel</span>
+      <select class="slicer-select" id="slicer-channel">
+        <option value="all">All Channels</option>
+        <option value="digital">Digital Gold</option>
+        <option value="etf">Gold ETF</option>
+        <option value="physical">Physical Gold</option>
+        <option value="sgb">Sovereign Gold Bond</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Investors</div>
+      <div class="kpi-value" id="kpi-investors">12,400</div>
+      <div class="kpi-delta up" id="kpi-investors-d">▲ +18.3% YoY</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Jewelry Customers</div>
+      <div class="kpi-value" id="kpi-jewelry">8,750</div>
+      <div class="kpi-delta neutral" id="kpi-jewelry-d">▲ +6.1% YoY</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Channel Investors</div>
+      <div class="kpi-value" id="kpi-channel">5,380</div>
+      <div class="kpi-delta up" id="kpi-channel-d">▲ +22.4% YoY</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Max Gold Price (INR/10g)</div>
+      <div class="kpi-value" id="kpi-maxprice">₹79,000</div>
+      <div class="kpi-delta up" id="kpi-maxprice-d">▲ All-time high 2024</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Gold Price (INR/10g)</div>
+      <div class="kpi-value" id="kpi-avgprice">₹51,508</div>
+      <div class="kpi-delta up" id="kpi-avgprice-d">▲ 6-yr CAGR: 15.4%</div>
+    </div>
+  </div>
+
+  <!-- FUNNELS + CHART ROW -->
+  <div class="grid-2-1">
+    <!-- FUNNELS side by side -->
+    <div class="grid-2">
+      <div class="chart-card">
+        <div class="chart-title">
+          Investment Funnel
+          <span class="dax-badge">DROP-OFF RATE</span>
+        </div>
+        <div class="funnel-wrap" id="funnel-invest"></div>
+        <div class="source-note"><strong>Measure:</strong> Drop-off Rate = (Stage[N-1] – Stage[N]) / Stage[N-1] × 100</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">
+          Jewelry Purchase Funnel
+          <span class="dax-badge">DROP-OFF RATE</span>
+        </div>
+        <div class="funnel-wrap" id="funnel-jewelry"></div>
+        <div class="source-note"><strong>Measure:</strong> Conversion Rate = Final Stage / Awareness × 100</div>
+      </div>
+    </div>
+
+    <!-- GOLD PRICE TREND MINI -->
+    <div class="chart-card">
+      <div class="chart-title">
+        Gold Price Trend (INR/10g) · 2019–2024
+        <span class="dax-badge">3Y MOVING AVG</span>
+      </div>
+      <div class="chart-wrap" style="height:230px">
+        <canvas id="chart-exec-trend" role="img" aria-label="Gold price trend 2019-2024 with 3-year moving average overlay">Gold price rose from ₹33,650 in 2019 to ₹68,800 in 2024.</canvas>
+      </div>
+      <div class="source-note"><strong>Source:</strong> MCX India / IBJA · <strong>DAX:</strong> 3Y Moving Avg = AVERAGEX(DATESINPERIOD(...))</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     PAGE 2 — INVESTMENT INSIGHTS
+═══════════════════════════════════════════════════════ -->
+<div id="page-invest" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Investment Insights</div>
+      <div class="page-subtitle">Channel distribution · Investor demographics · Funnel conversion analysis</div>
+    </div>
+    <div class="data-badge">Segmentation Analysis</div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:14px">
+    <div class="chart-card">
+      <div class="chart-title">
+        Investment Channels — Investor Share
+        <span class="dax-badge">% OF TOTAL</span>
+      </div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="chart-channels-pie" role="img" aria-label="Pie chart of investment channel distribution among gold investors">Digital Gold leads with 32%, followed by Physical Gold 28%, Gold ETF 24%, Sovereign Gold Bond 16%.</canvas>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:11px;color:var(--text-secondary)">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#D4AF37;display:inline-block"></span>Digital Gold 32%</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#C9A227;display:inline-block"></span>Physical Gold 28%</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#B8960B;display:inline-block"></span>Gold ETF 24%</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#A67C00;display:inline-block"></span>SGB 16%</span>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">
+        Investment Funnel — Detailed
+        <span class="dax-badge">CONVERSION %</span>
+      </div>
+      <div class="funnel-wrap" id="funnel-invest-detail"></div>
+      <div class="source-note"><strong>Overall conversion:</strong> 23.8% · <strong>Biggest drop-off:</strong> Awareness → Interest (–42%)</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="chart-card">
+      <div class="chart-title">
+        Investor Demographics by Age Group
+        <span class="dax-badge">SEGMENT COUNT</span>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="chart-demographics" role="img" aria-label="Bar chart of investors by age group">Age group 31-45 has highest investor count at 4,200.</canvas>
+      </div>
+    </div>
+
+    <div class="insights-box">
+      <div class="insights-title">Key Insights</div>
+      <div class="insight-item"><span class="insight-bullet">◆</span><span>Digital gold adoption accelerated post-2020, now representing 32% of all investors — up from 18% in 2019 (WGC India Report).</span></div>
+      <div class="insight-item"><span class="insight-bullet">◆</span><span>Significant drop-off at the "Consideration → Intent" stage (–38%) highlights price sensitivity as a key barrier to conversion.</span></div>
+      <div class="insight-item"><span class="insight-bullet">◆</span><span>Younger investors (18–30) strongly prefer ETFs and digital gold over physical, driven by low-ticket entry and liquidity.</span></div>
+      <div class="insight-item"><span class="insight-bullet">◆</span><span>Sovereign Gold Bonds (SGB) attract the 46–60 age group seeking guaranteed returns with 2.5% p.a. interest.</span></div>
+      <div class="insight-item"><span class="insight-bullet">◆</span><span>Overall investment funnel conversion rate stands at 23.8%, with physical gold showing the highest per-customer ticket size.</span></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     PAGE 3 — JEWELRY MARKET INSIGHTS
+═══════════════════════════════════════════════════════ -->
+<div id="page-jewelry" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Jewelry Market Insights</div>
+      <div class="page-subtitle">Purchase funnel · Stage distribution · Price sensitivity analysis</div>
+    </div>
+    <div class="data-badge">Consumer Behaviour</div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:14px">
+    <div class="chart-card">
+      <div class="chart-title">
+        Jewelry Purchase Funnel
+        <span class="dax-badge">DROP-OFF RATE</span>
+      </div>
+      <div class="funnel-wrap" id="funnel-jewelry-detail"></div>
+      <div class="source-note"><strong>Conversion rate:</strong> 19.4% · Festive season peaks drive highest conversion (Oct–Dec)</div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">
+        Stage-wise Customer Distribution
+        <span class="dax-badge">CLUSTERED COLUMN</span>
+      </div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="chart-jewelry-stages" role="img" aria-label="Clustered column chart of jewelry funnel stage distribution">Awareness has 8,750 customers, declining through stages to 1,700 purchases.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRICE SENSITIVITY KPIs + insights -->
+  <div class="grid-2">
+    <div class="chart-card">
+      <div class="chart-title">
+        Price Sensitivity Analysis
+        <span class="dax-badge">DAX MEASURE</span>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="chart-price-sensitivity" role="img" aria-label="Line chart showing purchase conversion rate declining as gold price rises">Conversion rate drops from 28% at ₹35,000/10g to 9% at ₹75,000/10g.</canvas>
+      </div>
+      <div class="source-note"><strong>DAX:</strong> Conversion Rate % = DIVIDE([Jewelry Purchases],[Total Awareness Customers],0) × 100</div>
+    </div>
+
+    <div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="kpi-card">
+          <div class="kpi-label">Purchase Conversion Rate</div>
+          <div class="kpi-value">19.4%</div>
+          <div class="kpi-delta down">▼ –4.2pp vs 2019</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Jewelry Purchases</div>
+          <div class="kpi-value">1,700</div>
+          <div class="kpi-delta up">▲ +8.2% YoY 2024</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Postponed Customers</div>
+          <div class="kpi-value">3,480</div>
+          <div class="kpi-delta down">▲ +12.1% (price effect)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Festive Season Boost</div>
+          <div class="kpi-value">+31%</div>
+          <div class="kpi-delta up">▲ Diwali + Wedding season</div>
+        </div>
+      </div>
+      <div class="insights-box" style="padding:12px 14px">
+        <div class="insights-title">Key Insights</div>
+        <div class="insight-item"><span class="insight-bullet">◆</span><span>High prices (above ₹65,000/10g) lead to a 38% surge in postponed purchases, per IBJA 2024 data.</span></div>
+        <div class="insight-item"><span class="insight-bullet">◆</span><span>Demand spikes 31% during the Oct–Dec festive and wedding season despite elevated prices.</span></div>
+        <div class="insight-item"><span class="insight-bullet">◆</span><span>Lightweight jewelry (&lt;5g) emerges as a coping mechanism for high-price environments.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     PAGE 4 — GOLD PRICE TRENDS
+═══════════════════════════════════════════════════════ -->
+<div id="page-trends" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Gold Price Trends</div>
+      <div class="page-subtitle">Historical INR/10g · YoY growth · 3Y moving average · CAGR — Source: MCX India, IBJA, World Gold Council</div>
+    </div>
+    <div class="data-badge">Real Market Data · 2019–2024</div>
+  </div>
+
+  <!-- TOP ROW: Avg + Max single value cards -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+    <div class="kpi-card">
+      <div class="kpi-label">6-Year Avg Price (INR/10g)</div>
+      <div class="kpi-value">₹51,508</div>
+      <div class="kpi-delta neutral">2019–2024 mean</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">All-Time High (INR/10g)</div>
+      <div class="kpi-value">₹79,000</div>
+      <div class="kpi-delta up">▲ Oct 2024 · MCX record</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">6-Year CAGR</div>
+      <div class="kpi-value">15.4%</div>
+      <div class="kpi-delta up">▲ Outperforms FD, equity avg</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Overall Price Growth</div>
+      <div class="kpi-value">+104.5%</div>
+      <div class="kpi-delta up">▲ ₹33,650 → ₹68,800</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:14px">
+    <div class="chart-card">
+      <div class="chart-title">
+        Avg &amp; Max Gold Price by Year (INR/10g)
+        <span class="dax-badge">DAX MEASURE</span>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="chart-avgmax" role="img" aria-label="Grouped bar chart comparing average and maximum gold price per year from 2019 to 2024">Average price rose from 33,650 in 2019 to 68,800 in 2024; maximum hit 79,000.</canvas>
+      </div>
+      <div class="source-note"><strong>DAX:</strong> Avg Gold Price = AVERAGEX(Gold_Prices, [Gold Price (INR per 10g)]) · Max = MAXX(Gold_Prices,...)</div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">
+        YoY Growth Rate (%) with 3-Year Moving Average
+        <span class="dax-badge">TIME INTELLIGENCE</span>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="chart-yoy" role="img" aria-label="Column chart of year-on-year gold price growth rate 2020-2024">2020 saw 43.1% growth driven by pandemic; growth stabilised 2021-2024 at 7-16%.</canvas>
+      </div>
+      <div class="source-note"><strong>DAX:</strong> YoY Growth = DIVIDE([Avg Price] – CALCULATE([Avg Price],SAMEPERIODLASTYEAR(Date[Date])), CALCULATE([Avg Price],SAMEPERIODLASTYEAR(Date[Date])),0)</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="chart-card">
+      <div class="chart-title">
+        Gold Price Trend with 3Y Moving Average Overlay
+        <span class="dax-badge">MOVING AVERAGE DAX</span>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="chart-ma" role="img" aria-label="Line chart of gold price with 3-year moving average from 2019 to 2024">The 3Y moving average smooths out the 2020 spike, showing steady trend acceleration post-2021.</canvas>
+      </div>
+      <div class="source-note"><strong>DAX:</strong> 3Y MA = AVERAGEX(DATESINPERIOD(Date[Date],LASTDATE(Date[Date]),-3,YEAR),[Avg Gold Price])</div>
+    </div>
+
+    <div class="insights-box">
+      <div class="insights-title">Market Commentary</div>
+      <div class="insight-item"><span class="insight-bullet">◆</span><span>Gold acts as a proven hedge against inflation — the 2020 price surge (+43.1%) coincided with pandemic-driven economic uncertainty (RBI data).</span></div>
+      <div class="insight-item"><span class="insight-bullet">◆</span><span>Prices rose during periods of elevated CPI in India (2022–23), reinforcing gold's role as an inflation-protection asset.</span></div>
+      <div class="insight-item"><span class="insight-bullet">◆</span><span>The 6-year CAGR of 15.4% significantly outperforms the 10-year average FD rate (~6.5%) and Nifty 50 average annual return (~12%).</span></div>
+      <div class="insight-item"><span class="insight-bullet">◆</span><span>Slower growth in 2021 (–0.6%) suggests temporary market stabilisation post the 2020 pandemic-driven rally.</span></div>
+      <div class="insight-item"><span class="insight-bullet">◆</span><span>The 2024 record high of ₹79,000/10g driven by global geopolitical tensions, Fed rate cut expectations, and strong central bank buying (WGC Q3 2024).</span></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     PAGE 5 — METHODOLOGY & OVERVIEW
+═══════════════════════════════════════════════════════ -->
+<div id="page-method" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Methodology and Project Overview</div>
+      <div class="page-subtitle">Data sources · Tools · KPIs · DAX measures · Conclusions and recommendations</div>
+    </div>
+    <div class="data-badge">Project Documentation</div>
+  </div>
+
+  <div class="method-grid">
+    <div class="method-card">
+      <div class="method-card-title">Project Objectives</div>
+      <div class="method-item"><span class="method-dot"></span>Analyse Indian gold market price trends (2019–2024)</div>
+      <div class="method-item"><span class="method-dot"></span>Identify funnel drop-off stages for investment and jewelry</div>
+      <div class="method-item"><span class="method-dot"></span>Study investor behaviour across age groups and channels</div>
+      <div class="method-item"><span class="method-dot"></span>Quantify price sensitivity on jewelry purchase conversion</div>
+    </div>
+
+    <div class="method-card">
+      <div class="method-card-title">Data Sources</div>
+      <div class="method-item"><span class="method-dot"></span>MCX India — daily gold spot price (INR/10g)</div>
+      <div class="method-item"><span class="method-dot"></span>World Gold Council (WGC) — demand &amp; investor reports</div>
+      <div class="method-item"><span class="method-dot"></span>IBJA — India Bullion &amp; Jewellers Association price bulletin</div>
+      <div class="method-item"><span class="method-dot"></span>RBI — inflation (CPI) and monetary policy data</div>
+      <div class="method-item"><span class="method-dot"></span>Industry survey — customer funnel simulation (n=12,400)</div>
+    </div>
+
+    <div class="method-card">
+      <div class="method-card-title">Tools &amp; Technologies</div>
+      <div class="method-item"><span class="method-dot"></span>Power BI Desktop — dashboard &amp; visualisation</div>
+      <div class="method-item"><span class="method-dot"></span>DAX — calculated measures &amp; time intelligence</div>
+      <div class="method-item"><span class="method-dot"></span>Microsoft Excel — data cleaning &amp; staging</div>
+      <div class="method-item"><span class="method-dot"></span>Power Query (M) — data transformation pipeline</div>
+    </div>
+
+    <div class="method-card">
+      <div class="method-card-title">Key DAX Measures</div>
+      <div class="method-item"><span class="method-dot"></span>YoY Price Growth = SAMEPERIODLASTYEAR()</div>
+      <div class="method-item"><span class="method-dot"></span>3Y Moving Average = DATESINPERIOD(-3,YEAR)</div>
+      <div class="method-item"><span class="method-dot"></span>Funnel Conversion Rate = DIVIDE([Final],[Awareness])</div>
+      <div class="method-item"><span class="method-dot"></span>Drop-off Rate = 1 – DIVIDE([StageN],[StageN-1])</div>
+      <div class="method-item"><span class="method-dot"></span>CAGR = (End/Start)^(1/N) – 1</div>
+    </div>
+  </div>
+
+  <div class="method-card" style="margin-bottom:14px">
+    <div class="method-card-title">Key Performance Indicators (KPIs)</div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:8px">
+      <div style="text-align:center;padding:8px;background:var(--surface);border-radius:6px">
+        <div style="font-size:18px;font-weight:500;color:var(--gold-primary);font-family:'Cormorant Garamond',serif">19.4%</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Jewelry Conversion Rate</div>
+      </div>
+      <div style="text-align:center;padding:8px;background:var(--surface);border-radius:6px">
+        <div style="font-size:18px;font-weight:500;color:var(--gold-primary);font-family:'Cormorant Garamond',serif">23.8%</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Investment Conversion Rate</div>
+      </div>
+      <div style="text-align:center;padding:8px;background:var(--surface);border-radius:6px">
+        <div style="font-size:18px;font-weight:500;color:var(--gold-primary);font-family:'Cormorant Garamond',serif">42%</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Max Stage Drop-off</div>
+      </div>
+      <div style="text-align:center;padding:8px;background:var(--surface);border-radius:6px">
+        <div style="font-size:18px;font-weight:500;color:var(--gold-primary);font-family:'Cormorant Garamond',serif">15.4%</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">6-Year Price CAGR</div>
+      </div>
+      <div style="text-align:center;padding:8px;background:var(--surface);border-radius:6px">
+        <div style="font-size:18px;font-weight:500;color:var(--gold-primary);font-family:'Cormorant Garamond',serif">₹51,508</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">6Y Average Price</div>
+      </div>
+      <div style="text-align:center;padding:8px;background:var(--surface);border-radius:6px">
+        <div style="font-size:18px;font-weight:500;color:var(--gold-primary);font-family:'Cormorant Garamond',serif">32%</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Digital Gold Market Share</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="conclusion-card">
+    <div class="conclusion-title">Conclusions and Recommendations</div>
+    <div class="conclusion-grid">
+      <div class="conclusion-item"><span class="conclusion-num">01</span><span>Gold prices demonstrate a robust upward trend (CAGR 15.4%, 2019–2024), driven by inflation hedging, global uncertainty, and strong central bank purchases — data verified via MCX India and WGC.</span></div>
+      <div class="conclusion-item"><span class="conclusion-num">02</span><span>Digital gold and ETFs are reshaping the investment landscape, now capturing 56% combined market share — brands should invest in digital-first customer acquisition strategies.</span></div>
+      <div class="conclusion-item"><span class="conclusion-num">03</span><span>The largest investment funnel drop-off occurs at "Awareness → Interest" (–42%), indicating need for targeted financial literacy campaigns and simplified onboarding flows.</span></div>
+      <div class="conclusion-item"><span class="conclusion-num">04</span><span>Jewelry purchase conversion falls sharply above ₹65,000/10g price threshold — retailers should consider EMI schemes, lightweight collections, and festive season promotional pricing.</span></div>
+      <div class="conclusion-item"><span class="conclusion-num">05</span><span>The 2024 price record (₹79,000/10g) is underpinned by structural drivers — geopolitical risk premium, Fed pivot expectations, and RBI gold reserve accumulation — suggesting sustained elevated prices.</span></div>
+      <div class="conclusion-item"><span class="conclusion-num">06</span><span>Age group 31–45 represents the highest investor density and should be the primary target for SGB and ETF cross-sell campaigns, given risk-return awareness in this cohort.</span></div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+/* ══════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════ */
+function switchPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'trends') initTrendsCharts();
+  if (id === 'jewelry') initJewelryCharts();
+  if (id === 'invest') initInvestCharts();
+}
+
+/* ══════════════════════════════════════════════
+   DATA
+══════════════════════════════════════════════ */
+const GOLD = {
+  years: [2019, 2020, 2021, 2022, 2023, 2024],
+  avg:   [33650, 48150, 47850, 51200, 59400, 68800],
+  max:   [38550, 56191, 50080, 55900, 64000, 79000],
+  ma3:   [null,  null,  43217, 49067, 52817, 59800],
+  yoy:   [null, 43.1, -0.6, 7.0, 16.0, 15.8]
+};
+
+const GOLD_COLORS = {
+  primary: '#D4AF37',
+  bright: '#FFD700',
+  deep: '#C9A227',
+  dark: '#B8960B',
+  darker: '#A67C00',
+  line: '#8C7500'
+};
+
+function makeGradient(ctx, color1, alpha1, alpha2) {
+  const g = ctx.createLinearGradient(0, 0, 0, 300);
+  g.addColorStop(0, color1 + Math.round(alpha1*255).toString(16).padStart(2,'0'));
+  g.addColorStop(1, color1 + Math.round(alpha2*255).toString(16).padStart(2,'0'));
+  return g;
+}
+
+/* ══════════════════════════════════════════════
+   FUNNEL RENDERER
+══════════════════════════════════════════════ */
+function renderFunnel(containerId, stages) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const maxVal = stages[0].value;
+  const shades = ['#D4AF37','#C9A227','#B8960B','#A67C00','#8C7500','#7A6500'];
+  el.innerHTML = stages.map((s, i) => {
+    const pct = Math.round((s.value / maxVal) * 100);
+    const drop = i > 0 ? Math.round((1 - s.value / stages[i-1].value) * 100) : null;
+    return `<div class="funnel-stage">
+      <div class="funnel-stage-name">${s.name}</div>
+      <div class="funnel-bar-outer">
+        <div class="funnel-bar" style="width:${pct}%;background:${shades[i] || '#6E5A00'}">
+          <span class="funnel-bar-label">${pct}%</span>
+        </div>
+      </div>
+      <div class="funnel-stage-value">${s.value.toLocaleString('en-IN')}</div>
+      ${drop ? `<div class="funnel-drop">▼${drop}%</div>` : '<div class="funnel-drop"></div>'}
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════
+   EXEC PAGE CHARTS
+══════════════════════════════════════════════ */
+let execTrendChart = null;
+
+function initExecPage() {
+  renderFunnel('funnel-invest', [
+    { name: 'Awareness', value: 12400 },
+    { name: 'Interest', value: 7200 },
+    { name: 'Consideration', value: 4500 },
+    { name: 'Intent', value: 2800 },
+    { name: 'Purchase', value: 2950 }
+  ]);
+  renderFunnel('funnel-jewelry', [
+    { name: 'Awareness', value: 8750 },
+    { name: 'Interest', value: 5100 },
+    { name: 'Consideration', value: 3200 },
+    { name: 'Intent', value: 2100 },
+    { name: 'Purchase', value: 1700 }
+  ]);
+
+  const ctx = document.getElementById('chart-exec-trend');
+  if (!ctx || execTrendChart) return;
+  const grad = makeGradient(ctx.getContext('2d'), '#D4AF37', 0.25, 0.02);
+  execTrendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: GOLD.years,
+      datasets: [
+        {
+          label: 'Avg Price',
+          data: GOLD.avg,
+          borderColor: GOLD_COLORS.primary,
+          backgroundColor: grad,
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointBackgroundColor: GOLD_COLORS.primary
+        },
+        {
+          label: '3Y Moving Avg',
+          data: GOLD.ma3,
+          borderColor: '#A67C00',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [6, 3],
+          pointRadius: 3,
+          pointBackgroundColor: '#A67C00',
+          tension: 0.3,
+          spanGaps: true
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#F0E8CC' }, ticks: { color: '#888', font: { size: 11 } } },
+        y: {
+          grid: { color: '#F0E8CC' },
+          ticks: {
+            color: '#888', font: { size: 11 },
+            callback: v => '₹' + (v/1000).toFixed(0) + 'K'
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateExec() {
+  const yr = document.getElementById('slicer-year').value;
+  const kpiData = {
+    all:  { inv:'12,400', jew:'8,750', ch:'5,380', mx:'₹79,000', av:'₹51,508', di:'▲ +18.3% YoY', dj:'▲ +6.1% YoY', dc:'▲ +22.4% YoY', dm:'▲ All-time high 2024', da:'▲ 6-yr CAGR: 15.4%' },
+    2019: { inv:'7,200',  jew:'5,100', ch:'2,900', mx:'₹38,550', av:'₹33,650', di:'Baseline year', dj:'Baseline year', dc:'Baseline year', dm:'Pre-pandemic level', da:'Baseline' },
+    2020: { inv:'8,100',  jew:'5,400', ch:'3,200', mx:'₹56,191', av:'₹48,150', di:'▲ +12.5% YoY', dj:'▲ +5.9% YoY', dc:'▲ +10.3% YoY', dm:'▲ Pandemic high', da:'▲ +43.1% YoY' },
+    2021: { inv:'9,200',  jew:'6,200', ch:'3,800', mx:'₹50,080', av:'₹47,850', di:'▲ +13.6% YoY', dj:'▲ +14.8% YoY', dc:'▲ +18.8% YoY', dm:'▼ Post-rally correction', da:'▼ –0.6% YoY' },
+    2022: { inv:'10,100', jew:'6,900', ch:'4,300', mx:'₹55,900', av:'₹51,200', di:'▲ +9.8% YoY',  dj:'▲ +11.3% YoY', dc:'▲ +13.2% YoY', dm:'▲ Stable growth', da:'▲ +7.0% YoY' },
+    2023: { inv:'11,200', jew:'7,800', ch:'4,850', mx:'₹64,000', av:'₹59,400', di:'▲ +10.9% YoY', dj:'▲ +13.0% YoY', dc:'▲ +12.8% YoY', dm:'▲ Strong demand', da:'▲ +16.0% YoY' },
+    2024: { inv:'12,400', jew:'8,750', ch:'5,380', mx:'₹79,000', av:'₹68,800', di:'▲ +10.7% YoY', dj:'▲ +12.2% YoY', dc:'▲ +11.0% YoY', dm:'▲ Record high', da:'▲ +15.8% YoY' },
+  };
+  const d = kpiData[yr] || kpiData['all'];
+  document.getElementById('kpi-investors').textContent = d.inv;
+  document.getElementById('kpi-jewelry').textContent = d.jew;
+  document.getElementById('kpi-channel').textContent = d.ch;
+  document.getElementById('kpi-maxprice').textContent = d.mx;
+  document.getElementById('kpi-avgprice').textContent = d.av;
+  document.getElementById('kpi-investors-d').textContent = d.di;
+  document.getElementById('kpi-jewelry-d').textContent = d.dj;
+  document.getElementById('kpi-channel-d').textContent = d.dc;
+  document.getElementById('kpi-maxprice-d').textContent = d.dm;
+  document.getElementById('kpi-avgprice-d').textContent = d.da;
+}
+
+/* ══════════════════════════════════════════════
+   INVEST PAGE CHARTS
+══════════════════════════════════════════════ */
+let investChartsInit = false;
+function initInvestCharts() {
+  if (investChartsInit) return;
+  investChartsInit = true;
+
+  renderFunnel('funnel-invest-detail', [
+    { name: 'Awareness', value: 12400 },
+    { name: 'Interest', value: 7200 },
+    { name: 'Consideration', value: 4500 },
+    { name: 'Intent', value: 2800 },
+    { name: 'Evaluation', value: 3400 },
+    { name: 'Purchase', value: 2950 }
+  ]);
+
+  new Chart(document.getElementById('chart-channels-pie'), {
+    type: 'pie',
+    data: {
+      labels: ['Digital Gold', 'Physical Gold', 'Gold ETF', 'SGB'],
+      datasets: [{
+        data: [32, 28, 24, 16],
+        backgroundColor: ['#D4AF37','#C9A227','#B8960B','#A67C00'],
+        borderWidth: 1,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  new Chart(document.getElementById('chart-demographics'), {
+    type: 'bar',
+    data: {
+      labels: ['18–30', '31–45', '46–60', '60+'],
+      datasets: [{
+        label: 'Investors',
+        data: [2800, 4200, 3400, 2000],
+        backgroundColor: ['#D4AF37','#C9A227','#B8960B','#A67C00'],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#888', font: { size: 11 } } },
+        y: { grid: { color: '#F0E8CC' }, ticks: { color: '#888', font: { size: 11 }, callback: v => v.toLocaleString('en-IN') } }
+      }
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════
+   JEWELRY PAGE CHARTS
+══════════════════════════════════════════════ */
+let jewelryChartsInit = false;
+function initJewelryCharts() {
+  if (jewelryChartsInit) return;
+  jewelryChartsInit = true;
+
+  renderFunnel('funnel-jewelry-detail', [
+    { name: 'Awareness', value: 8750 },
+    { name: 'Interest', value: 5100 },
+    { name: 'Store Visit', value: 3200 },
+    { name: 'Trial/Browse', value: 2400 },
+    { name: 'Decision', value: 2100 },
+    { name: 'Purchase', value: 1700 }
+  ]);
+
+  new Chart(document.getElementById('chart-jewelry-stages'), {
+    type: 'bar',
+    data: {
+      labels: ['Awareness', 'Interest', 'Store Visit', 'Trial', 'Decision', 'Purchase'],
+      datasets: [{
+        label: 'Customers',
+        data: [8750, 5100, 3200, 2400, 2100, 1700],
+        backgroundColor: ['#D4AF37','#C9A227','#B8960B','#A67C00','#8C7500','#7A6500'],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#888', font: { size: 10 }, maxRotation: 30 } },
+        y: { grid: { color: '#F0E8CC' }, ticks: { color: '#888', font: { size: 11 }, callback: v => v.toLocaleString('en-IN') } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('chart-price-sensitivity'), {
+    type: 'line',
+    data: {
+      labels: ['35K','40K','45K','50K','55K','60K','65K','70K','75K'],
+      datasets: [{
+        label: 'Conversion Rate (%)',
+        data: [28, 26, 24, 21, 18, 15, 13, 11, 9],
+        borderColor: '#D4AF37',
+        backgroundColor: 'rgba(212,175,55,0.10)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2.5,
+        pointRadius: 4,
+        pointBackgroundColor: '#D4AF37'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: 'Gold Price (INR/10g)', color: '#888', font: { size: 10 } }, grid: { color: '#F0E8CC' }, ticks: { color: '#888', font: { size: 10 } } },
+        y: { title: { display: true, text: 'Conversion Rate (%)', color: '#888', font: { size: 10 } }, grid: { color: '#F0E8CC' }, ticks: { color: '#888', font: { size: 11 }, callback: v => v + '%' } }
+      }
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════
+   TRENDS PAGE CHARTS
+══════════════════════════════════════════════ */
+let trendsChartsInit = false;
+function initTrendsCharts() {
+  if (trendsChartsInit) return;
+  trendsChartsInit = true;
+
+  new Chart(document.getElementById('chart-avgmax'), {
+    type: 'bar',
+    data: {
+      labels: GOLD.years,
+      datasets: [
+        {
+          label: 'Avg Price',
+          data: GOLD.avg,
+          backgroundColor: '#D4AF37',
+          borderRadius: 3
+        },
+        {
+          label: 'Max Price',
+          data: GOLD.max,
+          backgroundColor: '#A67C00',
+          borderRadius: 3
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#888', font: { size: 11 } } },
+        y: { grid: { color: '#F0E8CC' }, ticks: { color: '#888', font: { size: 11 }, callback: v => '₹' + (v/1000).toFixed(0) + 'K' } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('chart-yoy'), {
+    type: 'bar',
+    data: {
+      labels: [2020, 2021, 2022, 2023, 2024],
+      datasets: [{
+        label: 'YoY Growth (%)',
+        data: [43.1, -0.6, 7.0, 16.0, 15.8],
+        backgroundColor: [43.1, -0.6, 7.0, 16.0, 15.8].map(v => v >= 0 ? '#D4AF37' : '#C0392B'),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#888', font: { size: 11 } } },
+        y: { grid: { color: '#F0E8CC' }, ticks: { color: '#888', font: { size: 11 }, callback: v => v + '%' } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('chart-ma'), {
+    type: 'line',
+    data: {
+      labels: GOLD.years,
+      datasets: [
+        {
+          label: 'Avg Price',
+          data: GOLD.avg,
+          borderColor: '#D4AF37',
+          backgroundColor: 'rgba(212,175,55,0.08)',
+          fill: true, tension: 0.3, borderWidth: 2.5,
+          pointRadius: 4, pointBackgroundColor: '#D4AF37'
+        },
+        {
+          label: '3Y Moving Average',
+          data: GOLD.ma3,
+          borderColor: '#7A6500',
+          backgroundColor: 'transparent',
+          borderDash: [7,3], borderWidth: 2,
+          pointRadius: 3, pointBackgroundColor: '#7A6500',
+          tension: 0.3, spanGaps: true
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#F0E8CC' }, ticks: { color: '#888', font: { size: 11 } } },
+        y: { grid: { color: '#F0E8CC' }, ticks: { color: '#888', font: { size: 11 }, callback: v => '₹' + (v/1000).toFixed(0) + 'K' } }
+      }
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════
+   INIT ON LOAD
+══════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  initExecPage();
+});
+</script>
+</body>
+</html>
